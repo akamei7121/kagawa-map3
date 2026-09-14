@@ -1,0 +1,95 @@
+name: Build and Deploy Map
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "urls.txt"
+      - "index.html"
+      - ".github/workflows/build-map.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build data.js
+        run: |
+          python3 - <<'PY'
+          import re
+          import urllib.request
+
+          urls = []
+          with open("urls.txt", encoding="utf-8") as f:
+              urls = [x.strip() for x in f if x.strip()]
+
+          data = []
+
+          for url in urls:
+              try:
+                  req = urllib.request.Request(
+                      url,
+                      headers={"User-Agent": "Mozilla/5.0"}
+                  )
+                  with urllib.request.urlopen(req, timeout=20) as r:
+                      final_url = r.geturl()
+                      body = r.read().decode("utf-8", errors="ignore")
+
+                  text = final_url + "\n" + body
+
+                  m = re.search(
+                      r'@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)',
+                      text
+                  )
+
+                  if not m:
+                      m = re.search(
+                          r'!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)',
+                          text
+                      )
+
+                  if m:
+                      lat = float(m.group(1))
+                      lng = float(m.group(2))
+                      data.append({
+                          "url": url,
+                          "lat": lat,
+                          "lng": lng
+                      })
+                      print("OK:", url, lat, lng)
+                  else:
+                      print("座標を取得できませんでした:", url)
+
+              except Exception as e:
+                  print("ERROR:", url, e)
+
+          with open("data.js", "w", encoding="utf-8") as f:
+              f.write("const MAP_DATA = ")
+              import json
+              json.dump(data, f, ensure_ascii=False, indent=2)
+              f.write(";")
+
+          print("登録地点数:", len(data))
+          PY
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,70 +1,42 @@
 <!doctype html>
-<html lang="ja"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111">
-<title>Googleマップまとめ地図</title>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>香川 Googleマップまとめ地図</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-*{box-sizing:border-box}html,body{height:100%;margin:0;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
-body{display:flex;flex-direction:column}header{padding:10px 12px;border-bottom:1px solid #ddd;background:#fff}
-h1{font-size:18px;margin:0 0 3px}small{color:#666}#map{flex:1;min-height:45vh}
-.controls{padding:10px;background:#fff;border-top:1px solid #ddd}
-.inputrow{display:flex;gap:7px}input{flex:1;min-width:0;padding:11px;border:1px solid #bbb;border-radius:9px;font-size:14px}
-button{padding:10px 12px;border:0;border-radius:9px;background:#111;color:white;font-weight:700}
-#msg{font-size:12px;color:#555;margin:6px 0}#list{max-height:30vh;overflow:auto}
-.item{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #eee}
-.num{width:28px;height:28px;border-radius:50%;background:#111;color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
-.txt{flex:1;min-width:0}.name{font-size:13px;font-weight:700}.addr{font-size:11px;color:#666}
-.item a,.del{padding:6px 8px;border:1px solid #bbb;border-radius:7px;text-decoration:none;color:#111;background:#fff;font-size:11px;white-space:nowrap}
-.del{cursor:pointer}
-.marker-num{width:30px;height:30px;border-radius:50%;background:#111;color:#fff;border:2px solid #fff;box-shadow:0 1px 5px #555;display:grid;place-items:center;font-weight:700}
-.popup-title{font-weight:700;margin-bottom:5px}.popup-link{display:inline-block;margin-top:7px;background:#111;color:#fff;padding:8px 10px;border-radius:7px;text-decoration:none}
-</style></head><body>
-<header><h1>Googleマップまとめ地図</h1><small>地点をタップすると元のGoogleマップを開けます。</small></header>
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+#map{height:100%}
+.panel{position:fixed;z-index:1000;top:10px;left:10px;right:10px;max-width:620px;background:#fff;padding:12px;border-radius:12px;box-shadow:0 2px 12px #0003}
+.row{display:flex;gap:8px}.row input{flex:1;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:14px}.row button{padding:10px 14px;border:0;border-radius:8px;background:#222;color:#fff}
+.note{font-size:12px;color:#666;margin-top:7px}
+</style>
+</head>
+<body>
+<div class="panel">
+  <b>香川 Googleマップまとめ地図</b>
+  <div class="row" style="margin-top:8px">
+    <input id="url" placeholder="GoogleマップURLを追加する場合はGitHubのurls.txtへ">
+    <button onclick="openUrl()">開く</button>
+  </div>
+  <div class="note">ピンをタップすると元のGoogleマップを開きます。URL追加はGitHubの urls.txt に1行ずつ追加してください。</div>
+</div>
 <div id="map"></div>
-<section class="controls">
- <div class="inputrow"><input id="url" placeholder="GoogleマップURLを貼り付け"><button onclick="addUrl()">追加</button></div>
- <div id="msg">既存14地点を読み込んでいます。</div>
- <div id="list"></div>
-</section>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./data.js"></script>
 <script>
-const initial=[{"name": "手打うどん たにもと", "address": "〒769-0104 香川県高松市国分寺町新名418", "lat": 34.30177, "lng": 133.90973, "url": "https://maps.app.goo.gl/ZvsFcuPeJyv4N1iQ7?g_st=al"}, {"name": "かしむらうどん", "address": "〒761-0113 香川県高松市屋島西町2485-12", "lat": 34.36449, "lng": 134.09758, "url": "https://maps.app.goo.gl/wuuptc2nkhu6w8EGA?g_st=al"}, {"name": "本格手打ちうどん もり", "address": "〒767-0013 香川県三豊市高瀬町下麻678", "lat": 34.16694, "lng": 133.73869, "url": "https://maps.app.goo.gl/RRDunJ2KjMDcTGKH6?g_st=al"}, {"name": "山越うどん", "address": "〒761-2207 香川県綾歌郡綾川町羽床上602-2", "lat": 34.22578, "lng": 133.91368, "url": "https://maps.app.goo.gl/EGqD5C6u62HVXRGm6?g_st=al"}, {"name": "がもううどん", "address": "〒762-0023 香川県坂出市加茂町420-1", "lat": 34.3069, "lng": 133.90284, "url": "https://maps.app.goo.gl/Jpt4AMtmZwTATdQeA?g_st=al"}, {"name": "さぬきうどん 上原屋本店", "address": "〒760-0073 香川県高松市栗林町1丁目18-8", "lat": 34.32942, "lng": 134.04524, "url": "https://maps.app.goo.gl/RzU4gSLUidjjibeF6?g_st=al"}, {"name": "長田 in 香の香", "address": "〒765-0031 香川県善通寺市金蔵寺町1180", "lat": 34.23992, "lng": 133.77983, "url": "https://maps.app.goo.gl/dBS4H7GHFFt2WT5x5?g_st=al"}, {"name": "讃岐麺処山岡", "address": "〒768-0023 香川県観音寺市古川町273-1", "lat": 34.13574, "lng": 133.66535, "url": "https://maps.app.goo.gl/M8QbWkDaCSCG5JKd7?g_st=al"}, {"name": "日の出製麺所", "address": "〒762-0046 香川県坂出市富士見町1丁目8-5", "lat": 34.31668, "lng": 133.85644, "url": "https://maps.app.goo.gl/1E9MZiXfyYaJ1Lx66?g_st=al"}, {"name": "須崎食料品店", "address": "〒767-0014 香川県三豊市高瀬町上麻3778", "lat": 34.17674, "lng": 133.75487, "url": "https://maps.app.goo.gl/JVFty5W7Pa7YN27g9?g_st=al"}, {"name": "おうどん 瀬戸晴れ", "address": "〒761-0121 香川県高松市牟礼町牟礼2694-1", "lat": 34.34198, "lng": 134.14019, "url": "https://maps.app.goo.gl/pVunyNSEaMAyfhwi6?g_st=al"}, {"name": "手打ちうどん かじまや", "address": "〒768-0001 香川県観音寺市室本町1145-13", "lat": 34.1462, "lng": 133.63479, "url": "https://maps.app.goo.gl/SBwgS9UPrRUnwRkg6?g_st=al"}, {"name": "讃岐ラーメン はまんど", "address": "〒767-0031 香川県三豊市三野町大見3873-1", "lat": 34.19771, "lng": 133.69034, "url": "https://maps.app.goo.gl/8i5uS1e2AMuNjnXLA?g_st=al"}, {"name": "讃岐らぁ麺 伊吹いりこセンター 根っCO LABO", "address": "〒764-0033 香川県仲多度郡多度津町青木565-2", "lat": 34.26755, "lng": 133.7487, "url": "https://maps.app.goo.gl/NTfwy7ZGZK2QtXgK7?g_st=al"}];
-let places=JSON.parse(localStorage.getItem("kagawaPlacesV2")||"null")||initial;
-const map=L.map("map"); L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(map);
-let layers=[];
-function render(){
- layers.forEach(x=>map.removeLayer(x)); layers=[]; document.getElementById("list").innerHTML="";
- const b=L.latLngBounds([]);
- places.forEach((p,i)=>{
-  if(Number.isFinite(p.lat)&&Number.isFinite(p.lng)){
-   const icon=L.divIcon({className:"",html:`<div class="marker-num">${i+1}</div>`,iconSize:[30,30],iconAnchor:[15,15]});
-   const m=L.marker([p.lat,p.lng],{icon}).addTo(map);
-   m.bindPopup(`<div class="popup-title">${i+1}. ${esc(p.name)}</div><div>${esc(p.address||"")}</div><a class="popup-link" target="_blank" rel="noopener" href="${escAttr(p.url)}">Google Mapsで開く</a>`);
-   layers.push(m); b.extend([p.lat,p.lng]);
-  }
-  const row=document.createElement("div"); row.className="item";
-  row.innerHTML=`<div class="num">${i+1}</div><div class="txt"><div class="name">${esc(p.name)}</div><div class="addr">${esc(p.address||"")}</div></div><a target="_blank" rel="noopener" href="${escAttr(p.url)}">開く</a><button class="del" onclick="removePlace(${i})">削除</button>`;
-  document.getElementById("list").appendChild(row);
- });
- if(b.isValid()) map.fitBounds(b.pad(.08)); else map.setView([34.2,134.0],10);
- document.getElementById("msg").textContent=`${places.length}地点。URLを貼って「追加」できます。`;
-}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function escAttr(s){return esc(s)}
-function save(){localStorage.setItem("kagawaPlacesV2",JSON.stringify(places))}
-function removePlace(i){if(confirm("この地点を削除しますか？")){places.splice(i,1);save();render()}}
-async function addUrl(){
- const input=document.getElementById("url"), url=input.value.trim(); if(!url) return;
- if(!/^https?:\/\/(maps\.app\.goo\.gl|www\.google\.com\/maps|maps\.google\.com)/i.test(url)){
-  document.getElementById("msg").textContent="GoogleマップのURLを入力してください。"; return;
- }
- // Static GitHub Pages cannot reliably follow goo.gl redirects. Long URLs with @lat,lng are parsed locally.
- const m=url.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
- if(m){
-   const lat=Number(m[1]),lng=Number(m[2]); places.push({name:"追加地点 "+(places.length+1),address:"座標から追加",lat,lng,url});save();input.value="";render();return;
- }
- document.getElementById("msg").textContent="短縮URLはGitHub Pagesだけでは転送先を取得できません。次の版ではサーバー機能を追加して自動取得できます。";
-}
-render();
-</script></body></html>
+const points=window.MAP_DATA||[];
+const map=L.map('map').setView([34.25,133.85],10);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+const group=[];
+points.forEach((p,i)=>{
+ const m=L.marker([p.lat,p.lng]).addTo(map);
+ m.bindPopup('<b>地点 '+(i+1)+'</b><br><button onclick="location.href='+JSON.stringify(p.url)+'">Googleマップを開く</button>');
+ group.push([p.lat,p.lng]);
+});
+if(group.length) map.fitBounds(group,{padding:[30,30]});
+function openUrl(){const u=document.getElementById('url').value.trim();if(u)location.href=u;}
+</script>
+</body>
+</html>
